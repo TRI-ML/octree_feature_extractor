@@ -24,25 +24,27 @@ class OctreeFeatureExtractor(nn.Module):
         self.register_buffer('grid_offset', grid_offset)
         self.register_buffer('face_offset', face_offset)
 
-    def forward(self, all_voxel_centers, mask, depth_map, K):
+    def forward(self, pts, mask, depth_map, K, batch_id):
         '''
         args:
-            all_voxel_centers: (B, N, 3)
+            pts: (N, 3)
             mask: (B, H, W)
             depth_map: (B, H, W)
             K: (B, 3, 3)
+        return:
+            octree_feature: (N, 2)
         '''
-        bs, num_voxels = all_voxel_centers.shape[:2]
-        device = all_voxel_centers.device
+        num_voxels = pts.shape[0]
+        device = pts.device
 
         # K = self.K.unsqueeze(0).repeat(bs, 1, 1)
         image_height = self.image_height
         image_width = self.image_width
 
-        vertices = (all_voxel_centers.unsqueeze(-2) + self.grid_offset[None, None]).reshape(bs, -1, 3)
+        vertices = (pts.unsqueeze(-1) + self.grid_offset[None]).reshape(-1, 3)
         vertices = ofe.projection(vertices, K, image_height, image_width)
         faces = self.face_offset.repeat(num_voxels, 1) + th.arange(num_voxels, device=device).repeat_interleave(12).unsqueeze(-1) * 8
-        faces = faces.unsqueeze(0).repeat(bs, 1, 1)
+        # faces = faces.unsqueeze(0).repeat(bs, 1, 1)
         face_vertices = ofe.vertices_to_faces(vertices, faces)
-        octree_feature = octree_feature_extractor_cuda.run(face_vertices, mask, depth_map, self.image_height, self.image_width)
+        octree_feature = octree_feature_extractor_cuda.run(face_vertices, mask, depth_map, batch_id, self.image_height, self.image_width)
         return octree_feature

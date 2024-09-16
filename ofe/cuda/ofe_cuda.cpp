@@ -8,6 +8,7 @@ at::Tensor run_cuda(
         const at::Tensor& faces,
         const at::Tensor& mask,
         const at::Tensor& depth_map,
+        const at::Tensor& batch_id,
         const int image_height,
         const int image_width);
 
@@ -21,14 +22,16 @@ at::Tensor run_cpu(
         const at::Tensor& faces,
         const at::Tensor& mask,
         const at::Tensor& depth_map,
+        const at::Tensor& batch_id,
         const int image_height,
         const int image_width) {
 
     CHECK_INPUT(faces);
     CHECK_INPUT(mask);
     CHECK_INPUT(depth_map);
+    CHECK_INPUT(batch_id);
 
-    return run_cuda(faces, mask, depth_map, image_height, image_width);
+    return run_cuda(faces, mask, depth_map, batch_id, image_height, image_width);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

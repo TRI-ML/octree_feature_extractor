@@ -16,20 +16,20 @@ __global__ void octree_feature_extractor_cuda_kernel(
         const float* faces,
         const bool* mask,
         const float* depth_map,
-        const int batch_size,
+        const int* batch_id,
         const int num_faces,
         const int image_height,
         const int image_width,
         float* octree_feature) {
 
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= batch_size * num_faces) {
+    if (i >= num_faces) {
         return;
     }
     const int ih = image_height;
     const int iw = image_width;
-    const int bn = i / num_faces;
-    const int fn = i % num_faces;
+    const int bn = batch_id[i / 12];
+    const int fn = i;
 
     const float* face = &faces[i * 9];
 
@@ -132,24 +132,24 @@ at::Tensor run_cuda(
         const at::Tensor& faces,
         const at::Tensor& mask,
         const at::Tensor& depth_map,
+        const at::Tensor& batch_id,
         const int image_height,
         const int image_width) {
 
-    const int batch_size = faces.size(0);
     const int num_faces = faces.size(1);
     const int threads = 512;
 
     auto float_opts = faces.options().dtype(at::kFloat);
 
-    at::Tensor octree_feature = at::full({batch_size, num_faces / 12, 2}, 0.0, float_opts);
+    at::Tensor octree_feature = at::full({num_faces / 12, 2}, 0.0, float_opts);
 
-    const dim3 blocks1 ((batch_size * num_faces - 1) / threads +1);
+    const dim3 blocks1 ((num_faces - 1) / threads +1);
 
     octree_feature_extractor_cuda_kernel<<<blocks1, threads>>>(
         faces.data_ptr<float>(),
         mask.data_ptr<bool>(),
         depth_map.data_ptr<float>(),
-        batch_size,
+        batch_id.data_ptr<int>(),
         num_faces,
         image_height,
         image_width,

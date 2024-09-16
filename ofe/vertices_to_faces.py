@@ -9,11 +9,7 @@ def vertices_to_faces(vertices, faces):
     """
     assert (vertices.ndimension() == 2)
     assert (faces.ndimension() == 2)
-    # assert (vertices.shape[0] == faces.shape[0])
-    # assert (vertices.shape[2] == 3)
     assert (faces.shape[2] == 3)
 
-    nv = vertices.shape[0]
-    device = vertices.device
-
+    # pytorch only supports long and byte tensors for indexing
     return vertices[faces.long()]

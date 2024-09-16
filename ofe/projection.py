@@ -15,14 +15,14 @@ def projection(vertices, K, orig_size_y, orig_size_x):
     '''
 
     # instead of P*x we compute x'*P'
-    vertices = torch.bmm(vertices, K.transpose(2, 1))
+    vertices = torch.mm(vertices, K.transpose(1, 0))
 
-    x, y, z = vertices[:, :, 0], vertices[:, :, 1], vertices[:, :, 2]
+    x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
     x_ = x / z
     y_ = y / z
 
     x_ = 2 * (x_ - orig_size_x / 2.) / orig_size_x
     y_ = 2 * (y_ - orig_size_y / 2.) / orig_size_y
-    vertices = torch.cat((x_.unsqueeze(2), y_.unsqueeze(2), z.unsqueeze(2)),
-                         dim=2)
+    vertices = torch.cat((x_.unsqueeze(1), y_.unsqueeze(1), z.unsqueeze(1)),
+                         dim=1)
     return vertices

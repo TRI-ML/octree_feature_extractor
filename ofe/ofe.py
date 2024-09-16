@@ -30,7 +30,8 @@ class OctreeFeatureExtractor(nn.Module):
             pts: (N, 3)
             mask: (B, H, W)
             depth_map: (B, H, W)
-            K: (B, 3, 3)
+            K: (3, 3)
+            batch_id: (N)
         return:
             octree_feature: (N, 2)
         '''

@@ -143,7 +143,7 @@ at::Tensor run_cuda(
 
     auto float_opts = faces.options().dtype(at::kFloat);
 
-    at::Tensor octree_feature = at::full({num_faces / 12, 2}, 0.0, float_opts);
+    at::Tensor octree_feature = at::full({num_faces / 12, 2}, -300.0, float_opts);
 
     const dim3 blocks1 ((num_faces - 1) / threads +1);
 

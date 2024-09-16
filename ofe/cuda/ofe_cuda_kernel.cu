@@ -136,7 +136,7 @@ at::Tensor run_cuda(
         const int image_height,
         const int image_width) {
 
-    const int num_faces = faces.size(1);
+    const int num_faces = faces.size(0);
     const int threads = 512;
 
     auto float_opts = faces.options().dtype(at::kFloat);

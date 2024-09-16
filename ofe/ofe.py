@@ -41,10 +41,9 @@ class OctreeFeatureExtractor(nn.Module):
         image_height = self.image_height
         image_width = self.image_width
 
-        vertices = (pts.unsqueeze(-1) + self.grid_offset[None]).reshape(-1, 3)
+        vertices = (pts.unsqueeze(1) + self.grid_offset.unsqueeze(0)).reshape(-1, 3)
         vertices = ofe.projection(vertices, K, image_height, image_width)
         faces = self.face_offset.repeat(num_voxels, 1) + th.arange(num_voxels, device=device).repeat_interleave(12).unsqueeze(-1) * 8
-        # faces = faces.unsqueeze(0).repeat(bs, 1, 1)
         face_vertices = ofe.vertices_to_faces(vertices, faces)
         octree_feature = octree_feature_extractor_cuda.run(face_vertices, mask, depth_map, batch_id, self.image_height, self.image_width)
         return octree_feature

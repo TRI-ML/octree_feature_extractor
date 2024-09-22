@@ -63,7 +63,7 @@ __global__ void octree_feature_extractor_cuda_kernel(
             }
         }
     }
-    // if (p[0][0] == p[2][0]) return; // line, not triangle
+    if (p[0][0] == p[2][0]) return; // line, not triangle
 
     /* compute face_inv */
     float face_inv[9] = {
@@ -80,8 +80,8 @@ __global__ void octree_feature_extractor_cuda_kernel(
         face_inv[k] /= face_inv_denominator;
     }
 
-    const int xi_min = max(ceil(p[0][0]), 0.);
-    const int xi_max = min(p[2][0], iw - 1.0);
+    const int xi_min = max(floor(p[0][0]), 0.);
+    const int xi_max = min(ceil(p[2][0]), iw - 1.0);
 
     for (int xi = xi_min; xi <= xi_max; xi++) {
         /* compute yi_min and yi_max */
@@ -101,8 +101,8 @@ __global__ void octree_feature_extractor_cuda_kernel(
         }
         yi2 = (p[2][1] - p[0][1]) / (p[2][0] - p[0][0]) * (xi - p[0][0]) + p[0][1];
 
-        const int yi_min = max(0., ceil(min(yi1, yi2)));
-        const int yi_max = min(max(yi1, yi2), ih - 1.0);
+        const int yi_min = max(0., floor(min(yi1, yi2)));
+        const int yi_max = min(ceil(max(yi1, yi2)), ih - 1.0);
 
         for (int yi = yi_min; yi <= yi_max; yi++) {
             /* index in output buffers */

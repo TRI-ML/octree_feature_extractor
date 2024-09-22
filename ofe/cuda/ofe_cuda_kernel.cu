@@ -63,7 +63,7 @@ __global__ void octree_feature_extractor_cuda_kernel(
             }
         }
     }
-    if (p[0][0] == p[2][0]) return; // line, not triangle
+    // if (p[0][0] == p[2][0]) return; // line, not triangle
 
     /* compute face_inv */
     float face_inv[9] = {

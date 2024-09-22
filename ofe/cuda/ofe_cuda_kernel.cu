@@ -17,7 +17,10 @@ __global__ void octree_feature_extractor_cuda_kernel(
         const bool* mask,
         const float* depth_map,
         const int* batch_id,
+        const int* batch_start_id,
+        const int* batch_end_id,
         const int num_faces,
+        const int batch_size,
         const int image_height,
         const int image_width,
         float* octree_feature) {
@@ -104,27 +107,35 @@ __global__ void octree_feature_extractor_cuda_kernel(
 
         for (int yi = yi_min; yi <= yi_max; yi++) {
             /* index in output buffers */
-            int index = bn * ih * iw + yi * iw + xi;
             /* compute w = face_inv * p */
-            float w[3];
-            for (int k = 0; k < 3; k++) {
-                w[k] = face_inv[3 * k + 0] * xi + face_inv[3 * k + 1] * yi + face_inv[3 * k + 2];
-            }
-            /* sum(w) -> 1, 0 < w < 1 */
-            float w_sum = 0;
-            for (int k = 0; k < 3; k++) {
-                w[k] = min(max(w[k], 0.0), 1.0);
-                w_sum += w[k];
-            }
-            for (int k = 0; k < 3; k++) w[k] /= w_sum;
+            // float w[3];
+            // for (int k = 0; k < 3; k++) {
+            //     w[k] = face_inv[3 * k + 0] * xi + face_inv[3 * k + 1] * yi + face_inv[3 * k + 2];
+            // }
+            // /* sum(w) -> 1, 0 < w < 1 */
+            // float w_sum = 0;
+            // for (int k = 0; k < 3; k++) {
+            //     w[k] = min(max(w[k], 0.0), 1.0);
+            //     w_sum += w[k];
+            // }
+            // for (int k = 0; k < 3; k++) w[k] /= w_sum;
             /* compute 1 / zp = sum(w / z) */
-            const float zp = 1.0 / (w[0] / p[0][2] + w[1] / p[1][2] + w[2] / p[2][2]);
-            const float zp_diff = zp - depth_map[index];
-            const float float_mask = static_cast<float>(mask[index]);
-            if (depth_map[index] > 10.0 && !isnan(zp)) {
-                atomicMaxFloat(&octree_feature[(i / 12) * 2], zp_diff);
+            // const float zp = 1.0 / (w[0] / p[0][2] + w[1] / p[1][2] + w[2] / p[2][2]);
+            // const float zp_diff = zp - depth_map[index];
+            // if (depth_map[index] > 10.0 && !isnan(zp)) {
+            //     atomicMaxFloat(&octree_feature[(i / 12) * 2], zp_diff);
+            // }
+            const int bns = batch_start_id[bn];
+            const int bne = batch_end_id[bn];
+            for (int b = bns; b < bne; b++) {
+                int index = b * ih * iw + yi * iw + xi;
+                const float float_mask = static_cast<float>(mask[index]);
+                if (b == bn) {
+                    atomicMaxFloat(&octree_feature[(i / 12) * 2], float_mask);
+                } else {
+                    atomicMaxFloat(&octree_feature[(i / 12) * 2 + 1], float_mask);
+                }
             }
-            atomicMaxFloat(&octree_feature[(i / 12) * 2 + 1], float_mask);
         }
     }
 }
@@ -135,6 +146,8 @@ at::Tensor run_cuda(
         const at::Tensor& mask,
         const at::Tensor& depth_map,
         const at::Tensor& batch_id,
+        const at::Tensor& batch_start_id,
+        const at::Tensor& batch_end_id,
         const int image_height,
         const int image_width) {
 
@@ -143,7 +156,7 @@ at::Tensor run_cuda(
 
     auto float_opts = faces.options().dtype(at::kFloat);
 
-    at::Tensor octree_feature = at::full({num_faces / 12, 2}, -320.0, float_opts);
+    at::Tensor octree_feature = at::full({num_faces / 12, 2}, 0.0, float_opts);
 
     const dim3 blocks1 ((num_faces - 1) / threads +1);
 
@@ -152,7 +165,10 @@ at::Tensor run_cuda(
         mask.data_ptr<bool>(),
         depth_map.data_ptr<float>(),
         batch_id.data_ptr<int>(),
+        batch_start_id.data_ptr<int>(),
+        batch_end_id.data_ptr<int>(),
         num_faces,
+        batch_size,
         image_height,
         image_width,
         octree_feature.data_ptr<float>());

@@ -20,7 +20,6 @@ __global__ void octree_feature_extractor_cuda_kernel(
         const int* batch_start_id,
         const int* batch_end_id,
         const int num_faces,
-        const int batch_size,
         const int image_height,
         const int image_width,
         float* octree_feature) {
@@ -168,7 +167,6 @@ at::Tensor run_cuda(
         batch_start_id.data_ptr<int>(),
         batch_end_id.data_ptr<int>(),
         num_faces,
-        batch_size,
         image_height,
         image_width,
         octree_feature.data_ptr<float>());

@@ -81,49 +81,30 @@ __global__ void octree_feature_extractor_cuda_kernel(
     }
 
     const int xi_min = max(floor(p[0][0]), 0.);
-    const int xi_max = min(ceil(p[2][0]), iw - 1.0);
+    const int xi_max = min(p[2][0], iw - 1.0);
 
     for (int xi = xi_min; xi <= xi_max; xi++) {
         /* compute yi_min and yi_max */
         float yi1, yi2;
         if (xi <= p[1][0]) {
             if (p[1][0] - p[0][0] != 0) {
-                yi1 = (p[1][1] - p[0][1]) / (p[1][0] - p[0][0]) * (xi - p[0][0]) + p[0][1];
+                yi1 = (p[1][1] - p[0][1]) / (p[1][0] - p[0][0]) * max(xi - p[0][0], 0.0) + p[0][1];
             } else {
                 yi1 = p[1][1];
             }
         } else {
             if (p[2][0] - p[1][0] != 0) {
-                yi1 = (p[2][1] - p[1][1]) / (p[2][0] - p[1][0]) * (xi - p[1][0]) + p[1][1];
+                yi1 = (p[2][1] - p[1][1]) / (p[2][0] - p[1][0]) * max(xi - p[1][0], 0.0) + p[1][1];
             } else {
                 yi1 = p[1][1];
             }
         }
-        yi2 = (p[2][1] - p[0][1]) / (p[2][0] - p[0][0]) * (xi - p[0][0]) + p[0][1];
 
+        yi2 = (p[2][1] - p[0][1]) / (p[2][0] - p[0][0]) * max(xi - p[0][0], 0.0) + p[0][1];
         const int yi_min = max(0., floor(min(yi1, yi2)));
-        const int yi_max = min(ceil(max(yi1, yi2)), ih - 1.0);
+        const int yi_max = min(max(yi1, yi2), ih - 1.0);
 
         for (int yi = yi_min; yi <= yi_max; yi++) {
-            /* index in output buffers */
-            /* compute w = face_inv * p */
-            // float w[3];
-            // for (int k = 0; k < 3; k++) {
-            //     w[k] = face_inv[3 * k + 0] * xi + face_inv[3 * k + 1] * yi + face_inv[3 * k + 2];
-            // }
-            // /* sum(w) -> 1, 0 < w < 1 */
-            // float w_sum = 0;
-            // for (int k = 0; k < 3; k++) {
-            //     w[k] = min(max(w[k], 0.0), 1.0);
-            //     w_sum += w[k];
-            // }
-            // for (int k = 0; k < 3; k++) w[k] /= w_sum;
-            /* compute 1 / zp = sum(w / z) */
-            // const float zp = 1.0 / (w[0] / p[0][2] + w[1] / p[1][2] + w[2] / p[2][2]);
-            // const float zp_diff = zp - depth_map[index];
-            // if (depth_map[index] > 10.0 && !isnan(zp)) {
-            //     atomicMaxFloat(&octree_feature[(i / 12) * 2], zp_diff);
-            // }
             const int bns = batch_start_id[bn];
             const int bne = batch_end_id[bn];
             for (int b = bns; b < bne; b++) {

@@ -105,6 +105,8 @@ __global__ void octree_feature_extractor_cuda_kernel(
         const int yi_max = min(max(yi1, yi2), ih - 1.0);
 
         for (int yi = yi_min; yi <= yi_max; yi++) {
+            const float zp = 1.0 / (w[0] / p[0][2] + w[1] / p[1][2] + w[2] / p[2][2]);
+            const float zp_diff = zp - depth_map[index];
             const int bns = batch_start_id[bn];
             const int bne = batch_end_id[bn];
             for (int b = bns; b < bne; b++) {
@@ -113,7 +115,8 @@ __global__ void octree_feature_extractor_cuda_kernel(
                 if (b == bn) {
                     atomicMaxFloat(&octree_feature[(i / 12) * 2], float_mask);
                 } else {
-                    atomicMaxFloat(&octree_feature[(i / 12) * 2 + 1], float_mask);
+                    float occlusion = static_cast<float>(zp_diff > 0.0);
+                    atomicMaxFloat(&octree_feature[(i / 12) * 2 + 1], float_mask * occlusion);
                 }
             }
         }

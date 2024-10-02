@@ -126,9 +126,9 @@ __global__ void octree_feature_extractor_cuda_kernel(
                 float occlusion = static_cast<int>(zp_diff > 0.0);
                 if (depth_map[index] <= 10.0) {
                     occlusion = 0.0;
+                }
                 const int bindex = b * ih * iw + yi * iw + xi;
                 const float int_mask = static_cast<int>(mask[bindex]) * occlusion;
-                }
                 if (b == bn) {
                     atomicMax(&octree_feature[(i / 12) * 2], int_mask);
                 } else {

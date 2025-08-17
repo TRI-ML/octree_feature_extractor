@@ -23,7 +23,7 @@ class OctreeFeatureExtractor(nn.Module):
         self.register_buffer('grid_offset', grid_offset)
         self.register_buffer('face_offset', face_offset)
 
-    def forward(self, pts, mask, depth_map, K, batch_id, batch_start_id, batch_end_id, grid_size):
+    def forward(self, pts, mask, depth_map, K, batch_id, grid_size):
         '''
         args:
             pts: (N, 3)
@@ -31,8 +31,6 @@ class OctreeFeatureExtractor(nn.Module):
             depth_map: (B, H, W)
             K: (3, 3)
             batch_id: (N)
-            batch_start_id: (B)
-            batch_end_id: (B)
             grid_size: (1)
         return:
             octree_feature: (N, 2)
@@ -48,5 +46,5 @@ class OctreeFeatureExtractor(nn.Module):
         vertices = ofe.projection(vertices, K, image_height, image_width)
         faces = self.face_offset.repeat(num_voxels, 1) + th.arange(num_voxels, device=device).repeat_interleave(12).unsqueeze(-1) * 8
         face_vertices = ofe.vertices_to_faces(vertices, faces)
-        octree_feature = octree_feature_extractor_cuda.run(face_vertices, mask, depth_map, batch_id, batch_start_id, batch_end_id, self.image_height, self.image_width)
+        octree_feature = octree_feature_extractor_cuda.run(face_vertices, mask, depth_map, batch_id, self.image_height, self.image_width)
         return octree_feature
